@@ -81,7 +81,7 @@ enum {
 
 #endif  // MAC_OS_X_VERSION_10_7
 
-@interface NativeWindowDelegate : NSObject<NSWindowDelegate> {
+@interface NativeWindowDelegate : NSObject<NSWindowDelegate, NSUserNotificationCenterDelegate> {
  @private
   base::WeakPtr<content::Shell> shell_;
 }
@@ -96,7 +96,7 @@ enum {
   }
 	
 	// Set user default notification
-	//[[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:self];
+	[[NSUserNotificationCenter defaultUserNotificationCenter] setDelegate:self];
   return self;
 }
 
@@ -201,6 +201,18 @@ enum {
 }
 
 - (NSView*)hitTest:(NSPoint)aPoint {
+/*  if([[self window] getGlass]) {
+    NSRect rect = NSMakeRect(aPoint.x,aPoint.y,1,1);
+    NSBitmapImageRep* bir = [self bitmapImageRepForCachingDisplayInRect:rect];
+    [bir setSize:rect.size];
+    [self cacheDisplayInRect:rect toBitmapImageRep:bir];
+    NSColor* color = [bir colorAtX:0 y:0];
+    //[bir release];
+    if([color alphaComponent]<0.05)
+      return self;
+    else
+      return nil;
+  }*/
   if (shellWindow_->use_system_drag())
     return nil;
   if (!shellWindow_->draggable_region() ||
@@ -358,8 +370,8 @@ NativeWindowCocoa::NativeWindowCocoa(
       height);
   NSUInteger style_mask = NSTitledWindowMask | NSClosableWindowMask |
                           NSMiniaturizableWindowMask | NSTexturedBackgroundWindowMask | NSResizableWindowMask;
-  if(is_transparent_)
-    style_mask = NSBorderlessWindowMask;
+  //if(is_transparent_)
+  //  style_mask = NSBorderlessWindowMask;
 
   ShellNSWindow* shell_window;
   if (has_frame_) {
@@ -379,8 +391,9 @@ NativeWindowCocoa::NativeWindowCocoa(
   [shell_window setShell:shell];
   if(is_glass_) [shell_window setGlass];
   [window() setDelegate:[[NativeWindowDelegate alloc] initWithShell:shell]];
-  if(is_transparent_)
+  if(is_transparent_) {
     SetTransparent();
+  }
   // Disable fullscreen button when 'fullscreen' is specified to false.
   bool fullscreen;
   if (!(manifest->GetBoolean(switches::kmFullscreen, &fullscreen) &&
@@ -457,7 +470,7 @@ void NativeWindowCocoa::Notify(const std::string& title, const std::string& text
 	//notification.actionButtonTitle = actionTitle;
 	//notification.hasActionButton = YES;
 	if(sound)
-		[notification setSoundName:@"NSUserNotificationDefaultSoundName"];
+		[notification setSoundName:NSUserNotificationDefaultSoundName];
 	
 	[[NSUserNotificationCenter defaultUserNotificationCenter] deliverNotification:notification];
 }
@@ -548,9 +561,12 @@ void NativeWindowCocoa::SetTransparent() {
   is_transparent_ = true;
   if(base::mac::IsOSMountainLionOrLater()) {
     restored_bounds_ = [window() frame];
-    [window() setStyleMask:NSBorderlessWindowMask];
     [window() setFrame:[window() frameRectForContentRect:[window() frame]] display:YES];
   }
+  // Disabling this still allows the window to appear. With it enabled text inputs
+  // aren't captured, so for now lets leave this commented.
+  //[window() setStyleMask:NSBorderlessWindowMask];
+
   [window() setHasShadow:NO];
   ShellNSWindow* swin = (ShellNSWindow*)window();
   [swin setTransparent];

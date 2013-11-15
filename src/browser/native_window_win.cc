@@ -51,6 +51,9 @@
 #include <time.h>
 #include <stdlib.h>
 #include <Dwmapi.h>
+#include <Shellapi.h>
+#include <Shobjidl.h>
+#include "content/nw/src/resource.h"
 
 namespace nw {
 
@@ -276,6 +279,9 @@ NativeWindowWin::NativeWindowWin(const base::WeakPtr<content::Shell>& shell,
   window_->SetSize(window_bounds.size());
   window_->CenterWindow(window_bounds.size());
   window_->UpdateWindowIcon();
+  bool glass;
+  if(manifest->HasKey(switches::kmGlass)) manifest->GetBoolean(switches::kmGlass, &glass);
+  if(glass) SetGlass();
   if(manifest->HasKey(switches::kmTaskBar)) manifest->GetBoolean(switches::kmTaskBar, &is_intaskbar_); 
   if(!is_intaskbar_) {
     SetWindowLong(window_->GetNativeWindow(), GWL_EXSTYLE, GetWindowLong(window_->GetNativeWindow(),GWL_EXSTYLE)|WS_EX_TOOLWINDOW);
@@ -294,7 +300,16 @@ void NativeWindowWin::Close() {
 
 
 void NativeWindowWin::Notify(const std::string& title, const std::string& text, const std::string& subtitle, bool sound) {
-	
+  NOTIFYICONDATA nid = {};
+  nid.cbSize = sizeof(nid);
+  nid.hWnd = window_->GetNativeWindow();
+  nid.uFlags = NIF_ICON | NIF_INFO;
+  nid.dwInfoFlags = NIIF_USER || NIIF_LARGE_ICON;
+  lstrcpyn(nid.szInfoTitle,std::wstring(title.begin(),title.end()).c_str(),ARRAYSIZE(nid.szInfoTitle));
+  lstrcpyn(nid.szInfo,std::wstring(text.begin(),text.end()).c_str(),ARRAYSIZE(nid.szInfo));
+  LoadIconMetric(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MAINFRAME), LIM_SMALL, &(nid.hIcon));
+  LoadIconMetric(GetModuleHandle(NULL), MAKEINTRESOURCE(IDR_MAINFRAME), LIM_SMALL, &(nid.hBalloonIcon));
+  Shell_NotifyIcon(NIM_ADD, &nid) ? S_OK : E_FAIL;
 }
 
 void NativeWindowWin::Move(const gfx::Rect& bounds) {
@@ -365,6 +380,14 @@ bool NativeWindowWin::IsFullscreen() {
   return is_fullscreen_;
 }
 
+bool NativeWindowWin::SetGlass() {
+  MARGINS mgMarInset = { -1, -1, -1, -1 };
+  if(DwmExtendFrameIntoClientArea(window_->GetNativeWindow(), &mgMarInset) != S_OK) {
+    return false;
+  }
+  return true;
+}
+
 void NativeWindowWin::SetTransparent() {
   is_transparent_ = true;
   
@@ -396,9 +419,8 @@ void NativeWindowWin::SetTransparent() {
     SetWindowLong(window_->GetNativeWindow(), GWL_STYLE, WS_POPUP | WS_SYSMENU | WS_BORDER); 
     SetWindowLong(window_->GetNativeWindow(), GWL_EXSTYLE, WS_EX_LAYERED);
   }
-  MARGINS mgMarInset = { -1, -1, -1, -1 };
-  if(DwmExtendFrameIntoClientArea(window_->GetNativeWindow(), &mgMarInset) != S_OK) {
-    NOTREACHED() << "Windows DWM extending to client area failed, transparency is not supported.";
+
+  if(SetGlass()) {
     is_transparent_ = false;
     return;
   }
@@ -453,7 +475,7 @@ void NativeWindowWin::SetBadgeCount(int count) {
 }
 
 void NativeWindowWin::SetShowInTaskbar(bool show) {
-   if (show == false && base::win::GetVersion() < base::win::VERSION_VISTA) {
+   /*if (show == false && base::win::GetVersion() < base::win::VERSION_VISTA) {
     if (hidden_owner_window_.get() == NULL) {
       hidden_owner_window_.reset(new HiddenOwnerWindow());
     }
@@ -485,7 +507,7 @@ void NativeWindowWin::SetShowInTaskbar(bool show) {
   if (FAILED(result)) {
     LOG(ERROR) << "Failed to change the show in taskbar attribute";
     return;
-  }
+  }*/
 }
 
 void NativeWindowWin::SetPosition(const std::string& position) {

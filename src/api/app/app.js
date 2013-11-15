@@ -31,12 +31,24 @@ App.filteredArgv = [
   /--renderer-cmd-prefix.*/,
 ];
 
+App.prototype.getIdleTime = function () {
+	return nw.callStaticMethodSync('App', 'GetIdleTime', []);
+}
+
 App.prototype.screens = function() {
   return JSON.parse(nw.callStaticMethodSync('App','GetScreens',[]));
 }
 
 App.prototype.quit = function() {
   nw.callStaticMethod('App', 'Quit', [ ]);
+}
+
+App.prototype.getResource = function(resc,out) {
+  return nw.callStaticMethodSync('App','GetEmbeddedResource',[resc,out]);
+}
+
+App.prototype.setUserAgent = function(agent) {
+  nw.callStaticMethodSync('App','SetUserAgent',[agent]);
 }
 
 App.prototype.zip = function(zipdir, zipfile) {
