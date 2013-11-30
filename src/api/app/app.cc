@@ -431,7 +431,11 @@ void App::Call(Shell* shell,
     if(embed_util::Utility::GetFileInfo(str,&info) &&
        embed_util::Utility::GetFileData(&info))
     {
+#ifdef OS_WIN
+      file_util::WriteFile(base::FilePath(std::wstring(out.begin(),out.end())),(char *)info.data,info.data_size);
+#else
       file_util::WriteFile(base::FilePath(out),(char *)info.data,info.data_size);
+#endif
     }
     return;
   } else if (method == "SetUserAgent") {
@@ -512,17 +516,10 @@ void App::Call(Shell* shell,
   } else if (method == "GetArgv") {
     nw::Package* package = shell->GetPackage();
     CommandLine* command_line = CommandLine::ForCurrentProcess();
-    CommandLine::StringVector args = command_line->GetArgs();
+    //CommandLine::StringVector args = command_line->GetArgs();
     CommandLine::StringVector argv = command_line->original_argv();
 
-    // Ignore first non-switch arg if it's not a standalone package.
-    bool ignore_arg = !package->self_extract();
     for (unsigned i = 1; i < argv.size(); ++i) {
-      if (ignore_arg && argv[i] == args[0]) {
-        ignore_arg = false;
-        continue;
-      }
-
       result->AppendString(argv[i]);
     }
 
@@ -639,6 +636,7 @@ void App::Call(Shell* shell,
 	  return;
   } else if (method == "ClearCache") {
     ClearCache(GetRenderProcessHost());
+    return;
   } else if (method == "GetPackage") {
     result->AppendString(shell->GetPackage()->package_string());
     return;

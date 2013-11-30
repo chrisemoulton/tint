@@ -5,6 +5,11 @@
 {
   'variables': {
     'nw_product_name': 'Runtime',
+    'conditions': [
+      ['OS=="linux"', {
+       'linux_dump_symbols%': 1,
+      }],
+    ],
   },
   'targets': [
     {
@@ -363,6 +368,7 @@
             '<(DEPTH)/ui/views/views.gyp:views',
             '<(DEPTH)/webkit/webkit_resources.gyp:webkit_resources',
             '<(DEPTH)/webkit/webkit_resources.gyp:webkit_strings',
+			'<(DEPTH)/chrome/chrome_resources.gyp:chrome_resources',
           ],
           'configurations': {
             'Debug_Base': {
@@ -638,6 +644,11 @@
                 "publicKeyToken='6595b64144ccf1df' language='*'\"",
           ],
           'SubSystem': '2',  # Set /SUBSYSTEM:WINDOWS
+        },
+	'VCManifestTool': {
+          'AdditionalManifestFiles': [
+            '$(ProjectDir)\\nw\\src\\nw.exe.manifest',
+          ],
         },
       },
       'conditions': [

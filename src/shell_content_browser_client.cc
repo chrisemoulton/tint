@@ -56,6 +56,7 @@
 #include "geolocation/shell_access_token_store.h"
 #include "url/gurl.h"
 #include "ui/base/l10n/l10n_util.h"
+#include "ui/base/ui_base_switches.h"
 #include "content/common/dom_storage/dom_storage_map.h"
 #include "webkit/common/webpreferences.h"
 #include "webkit/common/user_agent/user_agent_util.h"
@@ -135,7 +136,12 @@ WebContentsViewPort* ShellContentBrowserClient::OverrideCreateWebContentsView(
 }
 
 std::string ShellContentBrowserClient::GetApplicationLocale() {
-  return l10n_util::GetApplicationLocale(std::string());
+  CommandLine* cmd_line = CommandLine::ForCurrentProcess();
+  std::string pref_locale;
+  if (cmd_line->HasSwitch(switches::kLang)) {
+    pref_locale = cmd_line->GetSwitchValueASCII(switches::kLang);
+  }
+  return l10n_util::GetApplicationLocale(pref_locale);
 }
 
 void ShellContentBrowserClient::AppendExtraCommandLineSwitches(
@@ -267,15 +273,10 @@ void ShellContentBrowserClient::OverrideWebkitPrefs(
   prefs->css_shaders_enabled = true;
   prefs->css_variables_enabled = true;
   prefs->experimental_webgl_enabled = true;
-  
+
   // Disable plugins and cache by default.
   prefs->plugins_enabled = false;
   prefs->java_enabled = false;
-
-  // This should eventually be removed, this still allows for mouse click
-  // throughs on transparent windows but degrades performance for videos
-  // and elaborate webgl type animations/css transforms.
-  prefs->accelerated_compositing_enabled = false;
 
   base::DictionaryValue* webkit;
   if (package->root()->GetDictionary(switches::kmWebkit, &webkit)) {
