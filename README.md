@@ -1,3 +1,6 @@
+* DEPRECATED: SEE http://github.com/trueinteractions/tint *
+
+
 **Official Tint - Node.js + Blink**
 
 Tint is a runtime based on node.js, chromium (specifically blink) and node-webkit enhanced with support for creating
