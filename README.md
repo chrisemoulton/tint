@@ -1,4 +1,4 @@
-* DEPRECATED: SEE http://github.com/trueinteractions/tint *
+#DEPRECATED: SEE http://github.com/trueinteractions/tint#
 
 
 **Official Tint - Node.js + Blink**
